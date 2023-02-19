@@ -10,43 +10,36 @@ class LineSplitStream extends stream.Transform {
   }
 
   _transform(chunk, encoding, callback) {
-    const newChunk = chunk.toString();
+    const newChunk = chunk.toString()
 
     if (newChunk.endsWith(`${this.eol}`)) {
-      let arr = newChunk.split(`${this.eol}`);
+      let array = newChunk.split(this.eol)
 
       if (this.rest !== '') {
-        arr[0] = this.theRest + arr[0];
+        array[0] = this.theRest + array[0];
       }
 
-      for (let el of arr) {
-        this.push(el);
+      for (const el of array) {
+        this.push(el)
       }
 
-      this.theRest = '';
+      this.theRest = ''
     } else {
-      let arr = newChunk.split(`${this.eol}`);
+      let array = newChunk.split(this.eol)
 
       if (this.rest !== '') {
-        arr[0] = this.theRest + arr[0];
-      };
-
-      this.theRest = arr.pop();
-
-      for (let el of arr) {
-        this.push(el);
+        array[0] = this.theRest + array[0];
       }
+      this.theRest = array.pop();
 
+      for (const el of array) {
+        this.push(el)
+      }
     }
-    callback();
+    callback()
   }
-
   _flush(callback) {
-    if (this.theRest !== '') {
-      callback(null, this.theRest);
-    } else {
-      callback();
-    }
+    callback(null, this.theRest)
   }
 }
 module.exports = LineSplitStream;
