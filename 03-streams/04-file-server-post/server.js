@@ -51,7 +51,7 @@ server.on('request', (req, res) => {
       })
 
       outStream.on('finish', () => {
-        res.code = 201
+        res.statusCode = 201
         res.end('file save')
       })
 
