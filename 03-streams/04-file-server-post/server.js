@@ -12,54 +12,51 @@ server.on('request', (req, res) => {
   const pathname = url.pathname.slice(1)
 
   const filepath = path.join(__dirname, 'files', pathname)
-  const limitStream = new LimitSizeStream({ limit: 1048576 })
+  const limitStream = new LimitSizeStream({ limit: 1e6 })
 
-  const outStream = fs.createWriteStream(filepath)
-
-  outStream.on('error', (e) => {
-    if (pathname.includes('/')) {
-      console.log(pathname);
-      res.statusCode = 400
-
-      res.end('Nested folders are not supported')
-    } else if (e.code === 'ENOENT') {
-      res.statusCode = 404
-      res.end('error 404')
-    } else {
-      res.statusCode = 500
-      res.end('something went wrong')
-    }
-  })
-
-  if (fs.existsSync(filepath)) {
-    res.statusCode = 409
-    res.end('error 409')
+  if (pathname.includes('/') || pathname.includes('..')) {
+    res.statusCode = 400;
+    res.end('Nested paths are not allowed');
+    return;
   }
 
-  limitStream.on('error', () => {
-    res.statusCode = 413
-    outStream.destroy()
-    fs.unlinkSync(filepath);
-    res.end('Limit has been exceeded')
-  })
-
+  const outStream = fs.createWriteStream(filepath, { flags: 'wx' })
 
   switch (req.method) {
     case 'POST':
 
-      req.on('data', chunk => {
-        limitStream.write(chunk)
+      req.pipe(limitStream).pipe(outStream)
+
+      limitStream.on('error', (e) => {
+        if (e.code === 'LIMIT_EXCEEDED') {
+          res.statusCode = 413
+          res.end('Limit has been exceeded')
+        } else {
+          res.statusCode = 500
+          res.end('something went wrong')
+        }
+
+        fs.unlink(filepath, (error) => { });
       })
 
-      limitStream.on('data', chunk => outStream.write(chunk))
+      outStream.on('error', (e) => {
+        if (e.code === 'EEXIST') {
+          res.statusCode = 409
+          res.end('file exists')
+        } else {
+          res.statusCode = 500
+          res.end('something went wrong')
+          fs.unlink(filepath, (error) => { })
+        }
+      })
 
-      req.on('end', () => limitStream.end())
-
-      limitStream.on('end', () => res.end('file create'))
+      outStream.on('finish', () => {
+        res.code = 201
+        res.end('file save')
+      })
 
       req.on('aborted', () => {
-        fs.unlinkSync(filepath);
-        outStream.destroy()
+        fs.unlink(filepath, (error) => { });
       })
       break;
 
@@ -69,4 +66,4 @@ server.on('request', (req, res) => {
   }
 });
 
-module.exports = server 
+module.exports = server
