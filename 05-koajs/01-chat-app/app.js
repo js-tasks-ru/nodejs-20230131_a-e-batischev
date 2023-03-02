@@ -33,7 +33,6 @@ router.post('/publish', async (ctx, next) => {
     clients.forEach(resolve => resolve(message))
 
     clients.clear()
-
     ctx.body = 'ok'
 });
 
