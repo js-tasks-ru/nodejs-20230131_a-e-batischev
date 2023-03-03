@@ -1,14 +1,18 @@
-const url = require('url');
-const http = require('http');
-const path = require('path');
+const url = require('url')
+const http = require('http')
+const path = require('path')
+const fs = require('fs')
+const LimitSizeStream = require('./LimitSizeStream')
 
-const receiveFile = require('./receiveFile');
 
 const server = new http.Server();
 
 server.on('request', (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
-  const pathname = url.pathname.slice(1);
+  const url = new URL(req.url, `http://${req.headers.host}`)
+  const pathname = url.pathname.slice(1)
+
+  const filepath = path.join(__dirname, 'files', pathname)
+  const limitStream = new LimitSizeStream({ limit: 1e6 })
 
   if (pathname.includes('/') || pathname.includes('..')) {
     res.statusCode = 400;
@@ -16,24 +20,50 @@ server.on('request', (req, res) => {
     return;
   }
 
-  const filepath = path.join(__dirname, 'files', pathname);
+  const outStream = fs.createWriteStream(filepath, { flags: 'wx' })
 
   switch (req.method) {
     case 'POST':
-      if (!filepath) {
-        res.statusCode = 404;
-        res.end('File not found');
-        return;
-      }
 
-      receiveFile(filepath, req, res);
+      req.pipe(limitStream).pipe(outStream)
 
+      limitStream.on('error', (e) => {
+        if (e.code === 'LIMIT_EXCEEDED') {
+          res.statusCode = 413
+          res.end('Limit has been exceeded')
+        } else {
+          res.statusCode = 500
+          res.end('something went wrong')
+        }
+
+        fs.unlink(filepath, (error) => { });
+      })
+
+      outStream.on('error', (e) => {
+        if (e.code === 'EEXIST') {
+          res.statusCode = 409
+          res.end('file exists')
+        } else {
+          res.statusCode = 500
+          res.end('something went wrong')
+          fs.unlink(filepath, (error) => { })
+        }
+      })
+
+      outStream.on('finish', () => {
+        res.statusCode = 201
+        res.end('file save')
+      })
+
+      req.on('aborted', () => {
+        fs.unlink(filepath, (error) => { });
+      })
       break;
 
     default:
-      res.statusCode = 501;
-      res.end('Not implemented');
+      res.statusCode = 501
+      res.end('Not implemented')
   }
 });
 
-module.exports = server;
+module.exports = server
