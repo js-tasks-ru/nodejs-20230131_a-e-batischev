@@ -5,3 +5,4 @@ module.exports = {
       'mongodb://localhost/any-shop',
   },
 };
+``
