@@ -8,7 +8,7 @@ module.exports = new LocalStrategy(
     User.findOne({ email: email }, function (err, user) {
       if (err) { return done(err); }
       if (!user) { return done(null, false, 'Нет такого пользователя'); }
-      if (user.checkPassword(password)) { return done(null, false, 'Неверный пароль'); }
+      if (!user.checkPassword(password)) { return done(null, false); }
 
       return done(null, user);
     });
