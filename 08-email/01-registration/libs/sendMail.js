@@ -15,8 +15,8 @@ const transportEngine = process.env.NODE_ENV === 'test' ?
     port: 465,
     secure: true,
     auth: {
-      user: config.mailer.user,
-      pass: config.mailer.password,
+      user: 'a.e.batischev@gmail.com',
+      pass: 'ywlyuhjskediyufr'
     },
   });
 
@@ -41,8 +41,8 @@ transport.use('compile', htmlToText());
 * */
 module.exports = async function sendMail(options) {
   const html = pug.renderFile(
-      path.join(__dirname, '../templates', options.template) + '.pug',
-      options.locals || {},
+    path.join(__dirname, '../templates', options.template) + '.pug',
+    options.locals || {},
   );
 
   const message = {

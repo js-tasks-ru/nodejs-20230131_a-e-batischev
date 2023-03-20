@@ -1,8 +1,8 @@
 module.exports = {
   mongodb: {
     uri: (process.env.NODE_ENV === 'test') ?
-      'mongodb://localhost/8-module-1-task' :
-      'mongodb://localhost/any-shop',
+      'mongodb://127.0.0.1:27017/test' :
+      'mongodb://127.0.0.1:27017/test',
   },
   crypto: {
     iterations: (process.env.NODE_ENV === 'test' ? 1 : 12000),
@@ -36,7 +36,7 @@ module.exports = {
     },
   },
   mailer: {
-    user: '',
-    password: '',
+    user: 'a.e.batischev@gmail.com',
+    password: 'asd66992233ASDbsscc',
   },
 };
