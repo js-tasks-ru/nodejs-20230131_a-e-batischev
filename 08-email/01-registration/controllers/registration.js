@@ -1,41 +1,43 @@
-const {v4: uuid} = require('uuid');
+const { v4: uuid } = require('uuid');
 const User = require('../models/User');
 const sendMail = require('../libs/sendMail');
 
 module.exports.register = async (ctx, next) => {
-  const verificationToken = uuid();
-  const user = new User({
-    email: ctx.request.body.email,
-    displayName: ctx.request.body.displayName,
-    verificationToken,
-  });
+    const verificationToken = uuid()
+    const { email, displayName, password } = ctx.request.body;
 
-  await user.setPassword(ctx.request.body.password);
-  await user.save();
+    const newUser = new User({ email, displayName, verificationToken });
 
-  await sendMail({
-    to: user.email,
-    subject: 'Подтвердите почту',
-    locals: {token: verificationToken},
-    template: 'confirmation',
-  });
+    await newUser.setPassword(password)
+    await newUser.save()
 
-  ctx.body = {status: 'ok'};
+    await sendMail({
+        template: 'confirmation',
+        locals: { token: verificationToken },
+        to: email,
+        subject: 'Подтвердите почту',
+    });
+
+
+    ctx.body = { status: 'ok' };
+
 };
 
 module.exports.confirm = async (ctx, next) => {
-  const user = await User.findOne({
-    verificationToken: ctx.request.body.verificationToken,
-  });
+    const user = await User.findOne({
+        verificationToken: ctx.request.body.verificationToken,
+    });
 
-  if (!user) {
-    ctx.throw(400, 'Ссылка подтверждения недействительна или устарела');
-  }
+    if (!user) {
+        ctx.throw(400, 'Ссылка подтверждения недействительна или устарела');
+    }
 
-  user.verificationToken = undefined;
-  await user.save();
+    user.verificationToken = undefined;
+    await user.save();
 
-  const token = uuid();
+    const token = uuid();
 
-  ctx.body = {token};
+    ctx.body = { token };
+
+
 };
